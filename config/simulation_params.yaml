@@ -1,0 +1,51 @@
+# Simulation parameters for delayed coking reactor
+
+geometry:
+  type: "2D_axisymmetric"
+  diameter: 0.0602   # m (2.5 NPS SCH 40)
+  height: 0.5692     # m
+
+mesh:
+  nr: 7              # radial cells
+  nz: 126            # axial cells
+
+operating_conditions:
+  pressure: 101325           # Pa (1 atm)
+  feed_temperature: 643.15   # K (370°C)
+  wall_temperature: 783.15   # K (510°C)
+  feed_mass_rate: 8.333e-5   # kg/s (5 g/min)
+
+time_settings:
+  coking_duration: 43200     # s (12 hours)
+  time_step: 0.01            # s
+  save_interval: 600         # s (10 minutes)
+
+cooling:
+  nitrogen_flow_rate: 1.24e-4  # m³/s (124 cm³/s)
+  nitrogen_temperature: 300     # K
+  target_temperature: 313       # K (40°C)
+
+numerical:
+  max_iterations: 100
+  convergence_criteria: 1e-6
+
+  # СТАРЫЕ ключи — оставлены, чтобы ничего не ломать сейчас.
+  relaxation_factors:
+    pressure: 1.93
+    velocity: 0.7
+    temperature: 0.8
+    volume_fraction: 0.5
+
+  # НОВЫЕ ключи — их будет читать солвер давления и импульса.
+  sor_omega_pressure: 1.93       # ω для SOR уравнения коррекции давления
+  under_relaxation:
+    velocity: 0.7                # α_u
+    temperature: 0.8             # α_T
+    volume_fraction: 0.5         # α_α
+
+  # Опорное давление для уравнения коррекции давления (будет использовано солвером)
+  pressure_reference:
+    mode: "cell"                 # "cell" или "outlet"
+    i: 0                         # индекс по r (на оси)
+    j: 125                       # индекс по z (рядом с выходом)
+    value: 0.0                   # Па

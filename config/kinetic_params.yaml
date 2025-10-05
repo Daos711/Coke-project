@@ -1,0 +1,40 @@
+# Kinetic parameters for VR -> Coke + Distillables
+
+vacuum_residue_1:
+  first_order:
+    k0: 7.5386e15     # 1/s
+    Ea: 2.6577e5      # J/mol
+    transition_T: 773.15  # K (500°C)
+  order_1_5:
+    k0: 3.4453e22     # 1/s^0.5
+    Ea: 3.6297e5      # J/mol
+    transition_T: 837.95  # K (564.8°C)
+  second_order:
+    k0: 3.1806e10     # 1/s
+    Ea: 1.6763e5      # J/mol
+
+vacuum_residue_2:
+  first_order:
+    k0: 1.7831e6      # 1/s
+    Ea: 1.2495e5      # J/mol
+    transition_T: 752.05  # K (478.9°C)
+  order_1_5:
+    k0: 3.7711e15     # 1/s^0.5
+    Ea: 2.5498e5      # J/mol
+    transition_T: 833.95  # K (560.8°C)
+  second_order:
+    k0: 5.1982e12     # 1/s
+    Ea: 2.0477e5      # J/mol
+
+vacuum_residue_3:
+  first_order:
+    k0: 7.8408e4      # 1/s
+    Ea: 1.1045e5      # J/mol
+    transition_T: 760.95  # K (487.8°C)
+  order_1_5:
+    k0: 3.3909e18     # 1/s^0.5
+    Ea: 3.0287e5      # J/mol
+    transition_T: 843.25  # K (570.1°C)
+  second_order:
+    k0: 2.1660e11     # 1/s
+    Ea: 1.8316e5      # J/mol

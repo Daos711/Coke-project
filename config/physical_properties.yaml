@@ -1,0 +1,37 @@
+# Physical properties of vacuum residues and products
+
+vacuum_residue_1:
+  density_15C: 999    # kg/m³
+  API: 9.9
+  CCR: 18.4          # %wt
+  saturates: 16.7    # %wt
+  aromatics: 45.34   # %wt
+  resins: 30.62      # %wt
+  asphaltenes: 7.34  # %wt
+
+vacuum_residue_2:
+  density_15C: 1056   # kg/m³
+  API: 2.3
+  CCR: 32.6          # %wt
+  saturates: 13.7    # %wt
+  aromatics: 41.89   # %wt
+  resins: 17.18      # %wt
+  asphaltenes: 27.23 # %wt
+
+vacuum_residue_3:
+  density_15C: 1050   # kg/m³
+  API: 3.26
+  CCR: 32.0          # %wt
+  saturates: 5.14    # %wt
+  aromatics: 29.71   # %wt
+  resins: 35.71      # %wt
+  asphaltenes: 29.2  # %wt
+
+coke:
+  particle_diameter: 0.001  # m (1 mm)
+  bulk_density: 800        # kg/m³ (approximate)
+
+distillables:
+  molecular_weight: 0.150  # kg/mol (approximate)
+
+# Temperature-dependent properties will be implemented in properties.py
