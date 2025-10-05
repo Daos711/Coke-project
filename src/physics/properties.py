@@ -107,9 +107,9 @@ class Distillables:
     """Свойства дистиллятов (газовая фаза)."""
 
     def __init__(self):
-        # Свойства для тяжёлых углеводородных паров (C10–C12)
-        self.molecular_weight = 0.150  # кг/моль
-        self.R_gas = 8314.46 / self.molecular_weight  # Дж/(кг·К)
+        # Молярная масса типичных углеводородных паров
+        self.molecular_weight = 0.035  # кг/моль (35 г/моль)
+        self.R_universal = 8.314462618  # Дж/(моль·К) - универсальная газовая постоянная
 
         # Базовые свойства
         self.cp_base = 2000.0  # Дж/(кг·К) при 300 K
@@ -124,10 +124,18 @@ class Distillables:
         self.T0_k  = 300.0
 
     def density(self, T: Union[float, np.ndarray], P: float = 101325) -> Union[float, np.ndarray]:
-        """Плотность по уравнению идеального газа (кг/м³)."""
+        """Плотность по уравнению идеального газа (кг/м³).
+        ρ = P·M/(R·T) где P в Па, M в кг/моль, R=8.314 Дж/(моль·К), T в К
+
+        Проверка: При T=643K, P=101325 Па, M=0.035 кг/моль:
+        ρ = (101325 * 0.035) / (8.314 * 643) = 0.663 кг/м³
+        """
         Tarr, was_scalar = _to_array_and_flag(T)
-        Tclip = np.maximum(Tarr, 1.0)
-        rho = P / (self.R_gas * Tclip)
+        Tclip = np.maximum(Tarr, 1.0)  # защита от деления на 0
+
+        # Правильная формула идеального газа
+        rho = (P * self.molecular_weight) / (self.R_universal * Tclip)
+
         return _ret(rho, was_scalar)
 
     def viscosity(self, T: Union[float, np.ndarray]) -> Union[float, np.ndarray]:

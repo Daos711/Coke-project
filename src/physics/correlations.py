@@ -1,4 +1,3 @@
-# src/physics/correlations.py
 # -*- coding: utf-8 -*-
 """Корреляции для межфазного взаимодействия и пористой среды."""
 
@@ -21,29 +20,50 @@ class DragCoefficients:
     @staticmethod
     def symmetric_model(alpha_1: NumberOrArray,
                         alpha_2: NumberOrArray,
-                        rho_1:  NumberOrArray,
-                        rho_2:  NumberOrArray,
-                        mu_1:   NumberOrArray,
-                        mu_2:   NumberOrArray,
-                        v_rel:  NumberOrArray) -> NumberOrArray:
+                        rho_1: NumberOrArray,
+                        rho_2: NumberOrArray,
+                        mu_1: NumberOrArray,
+                        mu_2: NumberOrArray,
+                        v_rel: NumberOrArray,
+                        d_eq: float = None) -> NumberOrArray:
         """
         Symmetric drag model (ANSYS, 2014).
         Возвращает K (кг/м³·с). Поддерживает скаляры и массивы (broadcasting).
+
+        Параметры:
+        - d_eq: характерный размер (если None, используется d_bubble=5мм для совместимости)
         """
         eps = 1e-10
         alpha_1 = np.maximum(alpha_1, eps)
         alpha_2 = np.maximum(alpha_2, eps)
 
-        d_bubble = 0.005  # м
+        # Для обратной совместимости - если d_eq не задан, используем старое значение
+        if d_eq is None:
+            d_bubble = 0.005  # м
+            # Старое поведение - используем только свойства фазы 2
+            Re = np.maximum(rho_2 * np.abs(v_rel) * d_bubble / np.maximum(mu_2, eps), eps)
 
-        Re = np.maximum(rho_2 * np.abs(v_rel) * d_bubble / np.maximum(mu_2, eps), eps)
+            Cd = np.where(Re < 1000.0,
+                          24.0 / Re * (1.0 + 0.15 * np.power(Re, 0.687)),
+                          0.44)
 
-        # Cd по стандартной аппроксимации
-        Cd = np.where(Re < 1000.0,
-                      24.0 / Re * (1.0 + 0.15 * np.power(Re, 0.687)),
-                      0.44)
+            K = 0.75 * Cd * rho_2 * np.abs(v_rel) / d_bubble * alpha_1 * alpha_2
+        else:
+            # Новое улучшенное поведение со свойствами смеси
+            rho_mix = alpha_1 * rho_1 + alpha_2 * rho_2
+            mu_mix = alpha_1 * mu_1 + alpha_2 * mu_2
 
-        K = 0.75 * Cd * rho_2 * np.abs(v_rel) / d_bubble * alpha_1 * alpha_2
+            Re = np.maximum(rho_mix * np.abs(v_rel) * d_eq / np.maximum(mu_mix, eps), eps)
+
+            Cd = np.where(Re < 1000.0,
+                          24.0 / Re * (1.0 + 0.15 * np.power(Re, 0.687)),
+                          0.44)
+
+            # Комбинация ламинарного и инерционного членов
+            K_lam = 18.0 * mu_mix / (d_eq ** 2)
+            K_turb = 0.75 * Cd * rho_mix * np.abs(v_rel) / d_eq
+            K = alpha_1 * alpha_2 * (K_lam + K_turb)
+
         return K
 
 
@@ -52,7 +72,7 @@ class PorousDrag:
     Параметры Эргуна/Форхгеймера для пористых членов.
     Все методы векторизованы (принимают float или np.ndarray).
     Формулы:
-      K  = eps^3 * d_p^2 / (180 * (1 - eps)^2)
+      K  = eps^3 * d_p^2 / (150 * (1 - eps)^2)
       C2 = 1.75 * (1 - eps) / (eps^3 * d_p)
     """
 
@@ -62,7 +82,7 @@ class PorousDrag:
         eps_arr = np.asarray(eps, dtype=float)
         dp = float(dp_particle)
         eps_arr = np.clip(eps_arr, 1e-6, 1.0 - 1e-6)
-        K = (eps_arr**3 * dp**2) / (180.0 * (1.0 - eps_arr)**2 + 1e-30)
+        K = (eps_arr ** 3 * dp ** 2) / (150.0 * (1.0 - eps_arr) ** 2 + 1e-30)
         return K  # та же форма, что у eps
 
     @staticmethod
@@ -71,7 +91,7 @@ class PorousDrag:
         eps_arr = np.asarray(eps, dtype=float)
         dp = float(dp_particle)
         eps_arr = np.clip(eps_arr, 1e-6, 1.0 - 1e-6)
-        C2 = 1.75 * (1.0 - eps_arr) / (eps_arr**3 * dp + 1e-30)
+        C2 = 3.5 * (1.0 - eps_arr) / (eps_arr ** 3 * dp + 1e-30)
         return C2
 
     # Обратная совместимость: в старом коде вызывали ergun_inertial(eps[, dp])
@@ -93,21 +113,26 @@ class HeatTransfer:
                              cp_1: NumberOrArray,
                              cp_2: NumberOrArray,
                              mu_2: NumberOrArray,
-                             v_rel: NumberOrArray) -> NumberOrArray:
+                             v_rel: NumberOrArray,
+                             d_eq: float = None) -> NumberOrArray:
         """
         Теплообмен жидкость–газ по Томияме, возвращает H (Вт/м³·К).
         Векторизовано.
+
+        Параметры:
+        - d_eq: характерный размер (если None, используется 5мм для совместимости)
         """
         eps = 1e-10
         alpha_1 = np.maximum(alpha_1, eps)
         alpha_2 = np.maximum(alpha_2, eps)
 
-        d_bubble = 0.005  # м
+        d_bubble = d_eq if d_eq is not None else 0.005  # м
+
         Pr = np.maximum(cp_2 * mu_2 / np.maximum(k_2, eps), eps)
         Re = np.maximum(rho_2 * np.abs(v_rel) * d_bubble / np.maximum(mu_2, eps), eps)
 
-        Nu = 2.0 + 0.6 * np.power(Re, 0.5) * np.power(Pr, 1.0/3.0)
-        h  = Nu * k_2 / d_bubble
+        Nu = 2.0 + 0.6 * np.power(Re, 0.5) * np.power(Pr, 1.0 / 3.0)
+        h = Nu * k_2 / d_bubble
 
         a_interface = 6.0 * alpha_1 * alpha_2 / d_bubble
         H = h * a_interface
@@ -129,11 +154,11 @@ class HeatTransfer:
         eps = 1e-10
         e = np.clip(np.asarray(porosity, dtype=float), 1e-6, 1.0 - 1e-6)
 
-        Pr  = np.maximum(cp_f * mu_f / np.maximum(k_f, eps), eps)
+        Pr = np.maximum(cp_f * mu_f / np.maximum(k_f, eps), eps)
         Rep = np.maximum(rho_f * np.abs(v_f) * d_particle / np.maximum(mu_f, eps), eps)
 
-        Nu = 2.0 + 1.1 * np.power(Rep, 0.6) * np.power(Pr, 1.0/3.0)
-        h  = Nu * k_f / d_particle
+        Nu = 2.0 + 1.1 * np.power(Rep, 0.6) * np.power(Pr, 1.0 / 3.0)
+        h = Nu * k_f / d_particle
 
         a_solid = 6.0 * (1.0 - e) / d_particle
         H = h * a_solid * alpha_f
